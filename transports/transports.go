@@ -32,8 +32,12 @@ package transports
 import (
 	"encoding/json"
 	"errors"
+	"os"
+
 	Optimizer "github.com/OperatorFoundation/Optimizer-go/Optimizer/v3"
 	replicant "github.com/OperatorFoundation/Replicant-go/Replicant/v3"
+	"github.com/OperatorFoundation/Replicant-go/Replicant/v3/polish"
+	"github.com/OperatorFoundation/Replicant-go/Replicant/v3/toneburst"
 	"github.com/OperatorFoundation/Shadow-go/shadow/v3"
 	"github.com/OperatorFoundation/Starbridge-go/Starbridge/v3"
 	"golang.org/x/net/proxy"
@@ -77,6 +81,70 @@ func CreateDefaultReplicantServer() replicant.ServerConfig {
 	return config
 }
 
+func CreateReplicantConfigs(address string, isToneburst bool, isPolish bool, bindAddress *string) error {
+	var err error
+	serverConfig := CreateDefaultReplicantServer()
+	toneburstConfig := toneburst.WhalesongConfig{
+		AddSequences:    []toneburst.Sequence{},
+		RemoveSequences: []toneburst.Sequence{},
+	}
+
+	polishServerConfig, err := polish.NewSilverServerConfig()
+	if err != nil {
+		return err
+	}
+
+	serverConfig.Toneburst = toneburstConfig
+	serverConfig.Polish = polishServerConfig
+	encodedServerConf, err := serverConfig.Encode()
+	if err != nil {
+		return err
+	}
+
+	var sConfig replicant.ServerJSONOuterConfig
+	sConfig.Replicant.Config = encodedServerConf
+	serverJsonBytes, err := json.MarshalIndent(sConfig, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	polishClientConfig, err := polish.NewSilverClientConfig(polishServerConfig)
+	if err != nil {
+		return err
+	}
+
+	config := replicant.ClientConfig{
+		Toneburst: toneburstConfig,
+		Polish:    polishClientConfig,
+		Address:   address,
+	}
+
+	clientConfigs, err := config.Encode()
+	if err != nil {
+		return err
+	}
+
+	var cConfig struct {
+		Config string `json:"config"`
+	}
+	cConfig.Config = clientConfigs
+	clientJsonBytes, err := json.MarshalIndent(cConfig, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile("ReplicantServerConfigV3.json", serverJsonBytes, 0777)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile("ReplicantClientConfigV3.json", clientJsonBytes, 0777)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func ParseArgsReplicantClient(args string, dialer proxy.Dialer) (*replicant.TransportClient, error) {
 	var config *replicant.ClientConfig
 
@@ -104,7 +172,7 @@ func ParseArgsReplicantClient(args string, dialer proxy.Dialer) (*replicant.Tran
 	return &transport, nil
 }
 
-//  target string, dialer proxy.Dialer
+// target string, dialer proxy.Dialer
 func ParseArgsReplicantServer(args string) (*replicant.ServerConfig, error) {
 	var config *replicant.ServerConfig
 

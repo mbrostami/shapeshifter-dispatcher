@@ -131,8 +131,29 @@ func main() {
 	transparent := flag.Bool("transparent", false, "Enable transparent proxy mode. The default is protocol-aware proxy mode (socks5 for TCP, STUN for UDP)")
 	udp := flag.Bool("udp", false, "Enable UDP proxy mode. The default is TCP proxy mode.")
 	target := flag.String("target", "", "Specify transport server destination address")
+
+	// Flags for config generation
+	generateConfig := flag.Bool("generateConfig", false, "Generate a config for the specified transport")
+	serverAddress := flag.String("serverIP", "", "Specify the IP address of the server to use in the config")
+	toneburst := flag.Bool("toneburst", false, "Use the starburst toneburst for the Replicant config generation")
+	polish := flag.Bool("polish", false, "Use the Darkstar polish for the Replicant config generation")
+
 	flag.Parse() // Flag variables are set to actual values here.
 
+	if *generateConfig {
+		switch strings.ToLower(*transport) {
+		case "replicant":
+			err := transports.CreateReplicantConfigs(*serverAddress, *toneburst, *polish, bindAddr)
+			if err != nil {
+				fmt.Printf("%s\n", err.Error())
+				os.Exit(0)
+			}
+			return
+		default:
+			// FIXME: add print/log in case of wrong name
+			return
+		}
+	}
 	// Start validation of command line arguments
 
 	if *showVer {
