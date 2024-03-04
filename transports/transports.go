@@ -32,6 +32,7 @@ package transports
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 
 	Optimizer "github.com/OperatorFoundation/Optimizer-go/Optimizer/v3"
@@ -81,7 +82,7 @@ func CreateDefaultReplicantServer() replicant.ServerConfig {
 	return config
 }
 
-func CreateReplicantConfigs(address string, isToneburst bool, isPolish bool, bindAddress *string) error {
+func CreateReplicantConfigs(address, output string) error {
 	var err error
 	serverConfig := CreateDefaultReplicantServer()
 	toneburstConfig := toneburst.WhalesongConfig{
@@ -133,12 +134,12 @@ func CreateReplicantConfigs(address string, isToneburst bool, isPolish bool, bin
 		return err
 	}
 
-	err = os.WriteFile("ReplicantServerConfigV3.json", serverJsonBytes, 0777)
+	err = os.WriteFile(fmt.Sprintf("%s/ReplicantServerConfigV3.json", output), serverJsonBytes, 0777)
 	if err != nil {
 		return err
 	}
 
-	err = os.WriteFile("ReplicantClientConfigV3.json", clientJsonBytes, 0777)
+	err = os.WriteFile(fmt.Sprintf("%s/ReplicantClientConfigV3.json", output), clientJsonBytes, 0777)
 	if err != nil {
 		return err
 	}

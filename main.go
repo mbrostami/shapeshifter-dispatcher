@@ -134,16 +134,15 @@ func main() {
 
 	// Flags for config generation
 	generateConfig := flag.Bool("generateConfig", false, "Generate a config for the specified transport")
+	outputConfig := flag.String("outputConfig", "./", "Output directory to store generated configs")
 	serverAddress := flag.String("serverIP", "", "Specify the IP address of the server to use in the config")
-	toneburst := flag.Bool("toneburst", false, "Use the starburst toneburst for the Replicant config generation")
-	polish := flag.Bool("polish", false, "Use the Darkstar polish for the Replicant config generation")
 
 	flag.Parse() // Flag variables are set to actual values here.
 
 	if *generateConfig {
 		switch strings.ToLower(*transport) {
 		case "replicant":
-			err := transports.CreateReplicantConfigs(*serverAddress, *toneburst, *polish, bindAddr)
+			err := transports.CreateReplicantConfigs(*serverAddress, *outputConfig)
 			if err != nil {
 				fmt.Printf("%s\n", err.Error())
 				os.Exit(0)

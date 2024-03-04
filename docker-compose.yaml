@@ -1,0 +1,31 @@
+version: "3.4"
+
+services:
+  config:
+    build:
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/opt/app/
+    command: /app -generateConfig -outputConfig /opt/app -transport Replicant -serverIP "server:3344"
+
+  server:
+    restart: on-failure
+    build:
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/opt/app/
+    command: /app -transparent -server -state /opt/app/state -target REPLACE_WITH_REMOTE_SERVER_IP:3344 -transports Replicant -bindaddr Replicant-0.0.0.0:3344 -optionsFile /opt/app/ReplicantServerConfigV3.json -logLevel DEBUG -enableLogging
+    depends_on:
+      - config
+
+  client:
+    restart: on-failure
+    build:
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/opt/app/
+    ports:
+      - "1443:1443"
+    command: /app -transparent -client -state /opt/app/state -transports Replicant -proxylistenaddr 0.0.0.0:1443 -optionsFile /opt/app/ReplicantClientConfigV3.json
+    depends_on:
+      - server
