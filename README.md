@@ -122,6 +122,13 @@ Replicant is Operator's flagship transport which can be tuned for each adversary
 
 Here are example command lines to run the dispatcher with the Replicant transport:
 
+##### Config (@Hamid)
+You can generate a new configuration for client and server:
+``` 
+$HOME/go/bin/shapeshifter-dispatcher -generateConfig -transport Replicant -serverIP 127.0.0.1:2222
+```
+This will generate ReplicantClientConfigV3.json and ReplicantServerConfigV3.json with new private and public key.  
+
 ##### Server
 
 For this example to work, you need an application server running. You can use netcat to run a simple server on port 3333:
