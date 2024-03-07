@@ -148,6 +148,13 @@ func main() {
 				os.Exit(0)
 			}
 			return
+		case "shadow":
+			err := transports.CreateShadowConfigs(*serverAddress, *outputConfig, *bindAddr)
+			if err != nil {
+				fmt.Printf("%s\n", err.Error())
+				os.Exit(0)
+			}
+			return
 		default:
 			// FIXME: add print/log in case of wrong name
 			return

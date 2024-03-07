@@ -30,6 +30,9 @@
 package transports
 
 import (
+	"crypto/elliptic"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,6 +44,8 @@ import (
 	"github.com/OperatorFoundation/Replicant-go/Replicant/v3/toneburst"
 	"github.com/OperatorFoundation/Shadow-go/shadow/v3"
 	"github.com/OperatorFoundation/Starbridge-go/Starbridge/v3"
+	shadowsocks "github.com/OperatorFoundation/go-shadowsocks2/darkstar"
+	"github.com/aead/ecdh"
 	"golang.org/x/net/proxy"
 )
 
@@ -140,6 +145,70 @@ func CreateReplicantConfigs(address, output string) error {
 	}
 
 	err = os.WriteFile(fmt.Sprintf("%s/ReplicantClientConfigV3.json", output), clientJsonBytes, 0777)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func CreateShadowConfigs(address, output string, bindAddress string) error {
+	keyExchange := ecdh.Generic(elliptic.P256())
+
+	ephemeralPrivateKey, ephemeralPublicKey, keyError := keyExchange.GenerateKey(rand.Reader)
+	if keyError != nil {
+		return keyError
+	}
+
+	point, ok := ephemeralPublicKey.(ecdh.Point)
+	if !ok {
+		return errors.New("could not convert client public key to point")
+	}
+
+	bytes := elliptic.Marshal(elliptic.P256(), point.X, point.Y)
+	if bytes == nil {
+		return errors.New("MarshalCompressed returned nil")
+	}
+
+	privateKeyBytes, ok := ephemeralPrivateKey.([]byte)
+	if !ok {
+		return errors.New("could not convert private key to bytes")
+	}
+
+	publicKeyBytes, keyByteError := shadowsocks.PublicKeyToBytes(ephemeralPublicKey)
+	if keyByteError != nil {
+		return keyByteError
+	}
+
+	privateKeyString := base64.StdEncoding.EncodeToString(privateKeyBytes)
+	publicKeyString := base64.StdEncoding.EncodeToString(publicKeyBytes)
+
+	shadowServerConfig := shadow.ServerConfig{
+		Password:   privateKeyString,
+		CipherName: "darkstar",
+	}
+
+	serverJsonBytes, marshalError := json.MarshalIndent(shadowServerConfig, "", "  ")
+	if marshalError != nil {
+		return marshalError
+	}
+
+	shadowClientConfig := shadow.ClientConfig{
+		Password:   publicKeyString,
+		CipherName: "darkstar",
+		Address:    address,
+	}
+
+	clientJsonBytes, marshalError := json.MarshalIndent(shadowClientConfig, "", "  ")
+	if marshalError != nil {
+		return marshalError
+	}
+
+	err := os.WriteFile(fmt.Sprintf("%s/ShadowClientConfig.json", output), clientJsonBytes, 0777)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(fmt.Sprintf("%s/ShadowServerConfig.json", output), serverJsonBytes, 0777)
 	if err != nil {
 		return err
 	}
