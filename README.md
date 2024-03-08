@@ -14,7 +14,7 @@ This will generate ShadowClientConfig.json and ShadowServerConfig.json for Repli
 NOTE:
 Dispatcher will forward the traffic to target ip:port as transparent tcp traffic,   
 So you need to setup a server for the protocol you want, for pure http/https you can use squid or something that can relay traffic to internet.  
-For other protocols you can use the server app (e.g openVPN server)
+For other protocols you can use the server app (e.g openVPN server but you might need to adjust the parameters for udp protocol as well)
 ```
 $HOME/go/bin/shapeshifter-dispatcher -transparent -server -state state -target 127.0.0.1:3334 -transports shadow -bindaddr shadow-127.0.0.1:2222 -optionsFile ShadowServerConfig.json -logLevel DEBUG -enableLogging 
 ```
