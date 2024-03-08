@@ -2,6 +2,31 @@
 
 [Operator](https://operatorfoundation.org) makes useable tools to help people around the world with censorship, security, and privacy.
 
+#### Customization in this repo 
+You can generate a new configuration for client and server:
+
+```
+$HOME/go/bin/shapeshifter-dispatcher -generateConfig -transport shadow -serverIP 127.0.0.1:2222
+```
+This will generate ShadowClientConfig.json and ShadowServerConfig.json for Replicant transport with new private and public key.
+
+**Run Server**:  
+NOTE:
+Dispatcher will forward the traffic to target ip:port as transparent tcp traffic,   
+So you need to setup a server for the protocol you want, for pure http/https you can use squid or something that can relay traffic to internet.  
+For other protocols you can use the server app (e.g openVPN server)
+```
+$HOME/go/bin/shapeshifter-dispatcher -transparent -server -state state -target 127.0.0.1:3334 -transports shadow -bindaddr shadow-127.0.0.1:2222 -optionsFile ShadowServerConfig.json -logLevel DEBUG -enableLogging 
+```
+
+**Run Client**:  
+NOTE:  
+Dispatcher client will forward the traffic to server that is specified in the config file as shadowsocks protocol,   
+It also opens a port as transparent proxy, so you can use that for any protocol you want. (depends on the use the protocol you setup on server)
+```
+$HOME/go/bin/shapeshifter-dispatcher -transparent -client -state state -transports shadow -proxylistenaddr 127.0.0.1:1443 -optionsFile ShadowClientConfig.json -logLevel DEBUG -enableLogging 
+```
+
 ## Shapeshifter
 
 The Shapeshifter project provides network protocol shapeshifting technology
@@ -121,13 +146,6 @@ Only one proxy mode can be used at a time.
 Replicant is Operator's flagship transport which can be tuned for each adversary.
 
 Here are example command lines to run the dispatcher with the Replicant transport:
-
-##### Config (@Hamid)
-You can generate a new configuration for client and server:
-``` 
-$HOME/go/bin/shapeshifter-dispatcher -generateConfig -transport Replicant -serverIP 127.0.0.1:2222
-```
-This will generate ReplicantClientConfigV3.json and ReplicantServerConfigV3.json with new private and public key.  
 
 ##### Server
 

@@ -32,7 +32,7 @@ package transports
 import (
 	"crypto/elliptic"
 	"crypto/rand"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -154,12 +154,12 @@ func CreateReplicantConfigs(address, output string) error {
 func CreateShadowConfigs(address, output string, bindAddress string) error {
 	keyExchange := ecdh.Generic(elliptic.P256())
 
-	ephemeralPrivateKey, ephemeralPublicKey, keyError := keyExchange.GenerateKey(rand.Reader)
+	clientEphemeralPrivateKey, clientEphemeralPublicKeyPoint, keyError := keyExchange.GenerateKey(rand.Reader)
 	if keyError != nil {
-		return keyError
+		return errors.New("keyExchange.GenerateKey error")
 	}
 
-	point, ok := ephemeralPublicKey.(ecdh.Point)
+	point, ok := clientEphemeralPublicKeyPoint.(ecdh.Point)
 	if !ok {
 		return errors.New("could not convert client public key to point")
 	}
@@ -169,22 +169,27 @@ func CreateShadowConfigs(address, output string, bindAddress string) error {
 		return errors.New("MarshalCompressed returned nil")
 	}
 
-	privateKeyBytes, ok := ephemeralPrivateKey.([]byte)
+	privateKeyBytes, ok := clientEphemeralPrivateKey.([]byte)
 	if !ok {
-		return errors.New("could not convert private key to bytes")
+		return errors.New("clientEphemeralPrivateKey to byte error")
 	}
 
-	publicKeyBytes, keyByteError := shadowsocks.PublicKeyToBytes(ephemeralPublicKey)
+	publicKeyBytes, keyByteError := shadowsocks.PublicKeyToBytes(clientEphemeralPublicKeyPoint)
 	if keyByteError != nil {
-		return keyByteError
+		return errors.New("shadowsocks.PublicKeyToBytes error")
 	}
 
-	privateKeyString := base64.StdEncoding.EncodeToString(privateKeyBytes)
-	publicKeyString := base64.StdEncoding.EncodeToString(publicKeyBytes)
+	privateKeyHex := hex.EncodeToString(privateKeyBytes)
+	fmt.Printf("private key bytes: %s\n", privateKeyHex)
 
-	shadowServerConfig := shadow.ServerConfig{
-		Password:   privateKeyString,
-		CipherName: "darkstar",
+	publicKeyHex := hex.EncodeToString(publicKeyBytes)
+	fmt.Printf("public key bytes: %s\n", publicKeyHex)
+
+	shadowServerConfig := map[string]interface{}{
+		"shadow": shadow.ServerConfig{
+			Password:   privateKeyHex,
+			CipherName: "DarkStar",
+		},
 	}
 
 	serverJsonBytes, marshalError := json.MarshalIndent(shadowServerConfig, "", "  ")
@@ -193,8 +198,8 @@ func CreateShadowConfigs(address, output string, bindAddress string) error {
 	}
 
 	shadowClientConfig := shadow.ClientConfig{
-		Password:   publicKeyString,
-		CipherName: "darkstar",
+		Password:   publicKeyHex,
+		CipherName: "DarkStar",
 		Address:    address,
 	}
 
